@@ -32,12 +32,12 @@
 </head>
 <body>
 <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column;">
-        <div style="text-align: center; padding: 20px;">
-            <h2>🔒 Khu vực Quản trị</h2>
-            <input type="password" id="admin-pass" placeholder="Nhập mật khẩu..." style="padding: 10px; width: 200px; border: 1px solid #ccc; border-radius: 5px;">
-            <button onclick="checkPass()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Đăng nhập</button>
-        </div>
+    <div style="text-align: center; padding: 20px;">
+        <h2>🔒 Khu vực Quản trị</h2>
+        <input type="password" id="admin-pass" placeholder="Nhập mật khẩu..." style="padding: 10px; width: 200px; border: 1px solid #ccc; border-radius: 5px;">
+        <button onclick="checkPass()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Đăng nhập</button>
     </div>
+</div>
 <div class="container">
     <h2>⚙️ Bảng Điều Khiển Của Quán</h2>
     
@@ -179,7 +179,7 @@
         document.getElementById('qr-result').style.display = 'block';
     }
     // Khởi chạy khi mở trang
-    loadAdminMenu();   
+    loadAdminMenu();
 </script>
 
 </body>
