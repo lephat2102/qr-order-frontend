@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Thực Đơn</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #ecf0f1; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        /* Form thêm món mới */
+        .add-form { display: flex; gap: 10px; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
+        .add-form input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-add { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        /* Danh sách món ăn */
+        .menu-list { list-style: none; padding: 0; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .menu-item:last-child { border-bottom: none; }
+        .item-info { flex: 1; }
+        .item-name { font-size: 16px; font-weight: bold; color: #333; }
+        .item-price { color: #e74c3c; margin-top: 5px; }
+        
+        /* Cụm nút thao tác */
+        .actions button { padding: 6px 12px; margin-left: 5px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 13px;}
+        .btn-edit { background: #f39c12; }
+        .btn-delete { background: #c0392b; }
+        .btn-toggle { background: #34495e; }
+        .disabled-text { text-decoration: line-through; color: #999; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⚙️ Bảng Điều Khiển Của Quán</h2>
+    
+    <div class="add-form">
+        <input type="text" id="newName" placeholder="Tên món mới (VD: Bún chả)">
+        <input type="number" id="newPrice" placeholder="Giá tiền (VD: 35000)">
+        <button class="btn-add" onclick="addNewItem()">+ Thêm Món Mới</button>
+    </div>
+<div style="background: #e8f6f3; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #1abc9c;">
+        <h3 style="margin-top: 0; color: #16a085;">🖨️ Tạo Mã QR Đặt Bàn</h3>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="tableNumberInput" placeholder="Nhập số bàn (VD: 01, VIP2...)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+            <button onclick="generateQR()" style="background: #1abc9c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">Tạo Mã Mới</button>
+        </div>
+
+        <div id="qr-result" style="text-align: center; margin-top: 20px; display: none;">
+            <p style="font-weight: bold; color: #333;">Mã QR dành cho Bàn: <span id="qr-table-name" style="color: #e74c3c; font-size: 20px;"></span></p>
+            <img id="qr-image" src="" alt="Mã QR" style="max-width: 200px; border: 5px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border-radius: 10px;">
+            <p style="font-size: 12px; color: #7f8c8d; margin-top: 10px;">(Click chuột phải vào ảnh -> Chọn "Save image as..." để lưu và đem đi in dán lên bàn)</p>
+            
+            <input type="text" id="qr-link-text" readonly style="width: 100%; margin-top: 10px; padding: 5px; font-size: 11px; color: #666; border: 1px solid #ddd; background: #eee; text-align: center;">
+        </div>
+    </div>
+    <ul class="menu-list" id="admin-menu-list">
+        <p style="text-align: center;">Đang tải dữ liệu...</p>
+    </ul>
+</div>
+
+<script>
+    // 🔴 Dán ID Quán của bạn vào đây (giống bên trang index.html)
+    const restaurantId = '6a2832bc08e5471d0399ab98'; 
+    const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
+
+    // 1. Tải danh sách thực đơn
+    async function loadAdminMenu() {
+        const response = await fetch(`${apiUrl}/${restaurantId}`);
+        const result = await response.json();
+        const listContainer = document.getElementById('admin-menu-list');
+        listContainer.innerHTML = '';
+
+        if (result.success && result.data.length > 0) {
+            result.data.forEach(item => {
+                const isAvail = item.isAvailable;
+                const li = document.createElement('li');
+                li.className = 'menu-item';
+                li.innerHTML = `
+                    <div class="item-info">
+                        <div class="item-name ${!isAvail ? 'disabled-text' : ''}">${item.itemName} ${!isAvail ? '(Đã hết)' : ''}</div>
+                        <div class="item-price">${(item.price || 0).toLocaleString('vi-VN')} VNĐ</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-edit" onclick="editPrice('${item._id}', ${item.price})">Sửa Giá</button>
+                        <button class="btn-toggle" onclick="toggleStatus('${item._id}', ${!isAvail})">${isAvail ? 'Báo Hết' : 'Mở Bán'}</button>
+                        <button class="btn-delete" onclick="deleteItem('${item._id}')">Xóa</button>
+                    </div>
+                `;
+                listContainer.appendChild(li);
+            });
+        } else {
+            listContainer.innerHTML = '<p style="text-align: center;">Chưa có món nào. Hãy thêm ở trên!</p>';
+        }
+    }
+
+    // 2. Thêm món mới
+    async function addNewItem() {
+        const name = document.getElementById('newName').value;
+        const price = document.getElementById('newPrice').value;
+
+        if (!name || !price) return alert("Vui lòng nhập đủ tên và giá tiền!");
+
+        await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ restaurantId, itemName: name, price: Number(price), isAvailable: true })
+        });
+        
+        document.getElementById('newName').value = '';
+        document.getElementById('newPrice').value = '';
+        loadAdminMenu(); // Tải lại danh sách
+    }
+
+    // 3. Sửa giá tiền
+    async function editPrice(itemId, currentPrice) {
+        const newPrice = prompt("Nhập giá tiền mới cho món này:", currentPrice);
+        if (newPrice !== null && newPrice !== "") {
+            await fetch(`${apiUrl}/${itemId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ price: Number(newPrice) })
+            });
+            loadAdminMenu(); // Tải lại danh sách
+        }
+    }
+
+    // 4. Bật/Tắt trạng thái Còn hàng - Hết hàng
+    async function toggleStatus(itemId, newStatus) {
+        await fetch(`${apiUrl}/${itemId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isAvailable: newStatus })
+        });
+        loadAdminMenu();
+    }
+
+    // 5. Xóa món ăn
+    async function deleteItem(itemId) {
+        if (confirm("Bạn có chắc chắn muốn xóa vĩnh viễn món này không?")) {
+            await fetch(`${apiUrl}/${itemId}`, { method: 'DELETE' });
+            loadAdminMenu();
+        }
+    }
+// Hàm sinh mã QR tự động
+    function generateQR() {
+        const table = document.getElementById('tableNumberInput').value.trim();
+        if (!table) return alert("Bạn chưa nhập số bàn!");
+
+        // Lấy đường link hiện tại của file admin.html, biến nó thành link của index.html
+        let baseUrl = window.location.href.replace('admin.html', 'index.html');
+        baseUrl = baseUrl.split('?')[0]; // Dọn dẹp link cho sạch sẽ
+
+        // Ghép thêm tham số shop (ID quán) và table (Số bàn)
+        const orderUrl = `${baseUrl}?shop=${restaurantId}&table=${table}`;
+
+        // Gọi API miễn phí biến đường link thành ảnh QR
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(orderUrl)}`;
+
+        // Hiển thị kết quả ra màn hình
+        document.getElementById('qr-table-name').innerText = table;
+        document.getElementById('qr-image').src = qrApiUrl;
+        document.getElementById('qr-link-text').value = orderUrl;
+        document.getElementById('qr-result').style.display = 'block';
+    }
+    // Khởi chạy khi mở trang
+    loadAdminMenu();
+</script>
+
+</body>
+</html>
