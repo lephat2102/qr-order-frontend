@@ -164,26 +164,7 @@
         }
     }
 // Hàm sinh mã QR tự động
-    function generateQR() {
-        const table = document.getElementById('tableNumberInput').value.trim();
-        if (!table) return alert("Bạn chưa nhập số bàn!");
-
-        // Lấy đường link hiện tại của file admin.html, biến nó thành link của index.html
-        let baseUrl = window.location.href.replace('admin.html', 'index.html');
-        baseUrl = baseUrl.split('?')[0]; // Dọn dẹp link cho sạch sẽ
-
-        // Ghép thêm tham số shop (ID quán) và table (Số bàn)
-        const orderUrl = `${baseUrl}?shop=${restaurantId}&table=${table}`;
-
-        // Gọi API miễn phí biến đường link thành ảnh QR
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(orderUrl)}`;
-
-        // Hiển thị kết quả ra màn hình
-        document.getElementById('qr-table-name').innerText = table;
-        document.getElementById('qr-image').src = qrApiUrl;
-        document.getElementById('qr-link-text').value = orderUrl;
-        document.getElementById('qr-result').style.display = 'block';
-    }
+    
     // Khởi chạy khi mở trang
     loadAdminMenu();
     // Hàm tự động hỏi Server có đơn mới không mỗi 5 giây
