@@ -41,7 +41,7 @@
         <ul id="admin-menu-list"></ul>
     </div>
 
-   <script>
+  <script>
     const restaurantId = '6a2832bc08e5471d0399ab98';
     const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
 
@@ -50,43 +50,41 @@
             document.getElementById('login-overlay').style.display = 'none'; 
     }
 
-    // Tải menu và hiển thị nút Xóa/Bật-Tắt
-    async function loadAdminMenu() {
-    const res = await fetch(`${apiUrl}/${restaurantId}`);
-    const result = await res.json();
-    const list = document.getElementById('admin-menu-list');
-    list.innerHTML = '';
+    // --- HÀM TẠO QR ĐÃ ĐƯỢC ĐƯA RA NGOÀI ---
     function generateQR() {
         const table = document.getElementById('tableNumberInput').value;
         if (!table) return alert("Vui lòng nhập số bàn!");
         const domain = window.location.origin;
-        // Tạo link trỏ về trang index.html kèm tham số bàn và nhà hàng
         const qrUrl = `${domain}/index.html?shop=${restaurantId}&table=${table}`;
         document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
         document.getElementById('qr-result').style.display = 'block';
     }
-    // Tự động kiểm tra: nếu result có data thì lấy data, không thì lấy thẳng result
-    const menuItems = result.data || result; 
-    
-    if (Array.isArray(menuItems)) {
-        menuItems.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'menu-item';
-            li.innerHTML = `
-                <div style="display:flex; align-items:center;">
-                    <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
-                    <span>${item.itemName} - ${item.price}đ</span>
-                </div>
-                <div class="btn-group">
-                    <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
-                </div>
-            `;
-            list.appendChild(li);
-        });
-    } else {
-        console.error("Dữ liệu menu không đúng định dạng:", result);
+
+    async function loadAdminMenu() {
+        const res = await fetch(`${apiUrl}/${restaurantId}`);
+        const result = await res.json();
+        const list = document.getElementById('admin-menu-list');
+        list.innerHTML = '';
+        
+        const menuItems = result.data || result; 
+        
+        if (Array.isArray(menuItems)) {
+            menuItems.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'menu-item';
+                li.innerHTML = `
+                    <div style="display:flex; align-items:center;">
+                        <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
+                        <span>${item.itemName} - ${item.price}đ</span>
+                    </div>
+                    <div class="btn-group">
+                        <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
     }
-}
 
     async function addNewItem() {
         await fetch(apiUrl, {
@@ -124,11 +122,9 @@
         checkNewOrders(); 
     }
 
-    // Chạy khởi tạo
     loadAdminMenu(); 
     checkNewOrders(); 
     setInterval(checkNewOrders, 5000);
-    
 </script>
 </body>
 </html>
