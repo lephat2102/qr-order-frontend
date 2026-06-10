@@ -52,6 +52,7 @@
 </div>
 
 <script>
+  
     const restaurantId = '6a2832bc08e5471d0399ab98'; 
     const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
 
@@ -85,16 +86,27 @@
         const orderList = document.getElementById('order-list');
         orderList.innerHTML = '';
         orders.forEach(order => {
+            const itemsList = order.items.map(i => `${i.itemName} x${i.quantity}`).join(', ');
             const div = document.createElement('div');
-            div.innerHTML = `<p>Bàn ${order.tableNumber} - ${order.status === 'pending' ? '⏳ Đang làm' : '✅ Xong'} 
-                             ${order.status === 'pending' ? `<button onclick="completeOrder('${order._id}')">Xong</button>` : ''}</p>`;
+            div.style.padding = "10px";
+            div.style.borderBottom = "1px solid #ccc";
+            div.innerHTML = `
+                <div><strong>Bàn: ${order.tableNumber}</strong> | ${order.status === 'pending' ? '⏳ Đang làm' : '✅ Đã xong'}</div>
+                <div style="font-size: 14px;"><strong>Món:</strong> ${itemsList}</div>
+                ${order.status === 'pending' ? `<button onclick="completeOrder('${order._id}')" style="margin-top: 5px; background: #27ae60; color: white; border: none; padding: 5px 10px; cursor: pointer;">Hoàn thành</button>` : ''}
+            `;
             orderList.appendChild(div);
         });
     }
 
-    async function completeOrder(id) {
-        await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' });
-        checkNewOrders();
+    async function completeOrder(orderId) {
+        if (confirm("Xác nhận món đã làm xong?")) {
+            await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            checkNewOrders();
+        }
     }
 
     function generateQR() {
@@ -104,47 +116,10 @@
         document.getElementById('qr-result').style.display = 'block';
     }
 
-    // Chạy các hàm
+    // Khởi chạy
     loadAdminMenu();
-   async function checkNewOrders() {
-        const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
-        const orders = await res.json();
-        const orderList = document.getElementById('order-list');
-        orderList.innerHTML = '';
-
-        orders.forEach(order => {
-            // Hiển thị tên món và số lượng
-            const itemsList = order.items.map(i => `${i.itemName} x${i.quantity}`).join(', ');
-            
-            const div = document.createElement('div');
-            div.style.padding = "10px";
-            div.style.borderBottom = "1px solid #ccc";
-            div.innerHTML = `
-                <div style="margin-bottom: 5px;">
-                    <strong>Bàn: ${order.tableNumber}</strong> | 
-                    <span style="color: ${order.status === 'pending' ? 'red' : 'green'}">
-                        ${order.status === 'pending' ? '⏳ Đang làm' : '✅ Đã xong'}
-                    </span>
-                </div>
-                <div style="font-size: 14px;"><strong>Món:</strong> ${itemsList}</div>
-               ${order.status === 'pending' ? 
-    `<button onclick="completeOrder('${order._id}')" style="margin-top: 8px; background: #27ae60; color: white; border: none; padding: 5px 10px; cursor: pointer;">Hoàn thành</button>` 
-    : ''}
-                    `<button onclick="completeOrder('${order._id}')" style="margin-top: 8px; background: #27ae60; color: white; border: none; padding: 5px 10px; cursor: pointer;">Hoàn thành</button>` 
-                    : ''}
-            `;
-            orderList.appendChild(div);
-        });
-        async function completeOrder(orderId) {
-    if (confirm("Xác nhận món đã làm xong?")) {
-        await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${orderId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        checkNewOrders(); // Tải lại danh sách đơn
-    }
-}
-    }
+    checkNewOrders();
+    setInterval(checkNewOrders, 5000);
 </script>
 </body>
 </html>
