@@ -97,8 +97,6 @@
                     const li = document.createElement('li');
                     li.className = 'menu-item';
                     const imgSrc = item.imageUrl || 'https://via.placeholder.com/50?text=No+Img';
-                    
-                    // Kiểm tra xem món có đang bán không (mặc định là có nếu isAvailable không false)
                     const isAvailable = item.isAvailable !== false; 
                     
                     li.innerHTML = `
@@ -155,7 +153,6 @@
         } catch (error) { alert("Lỗi khi thêm món!"); }
     }
 
-    // Tính năng Sửa giá
     async function editPrice(id, currentPrice) {
         const newPrice = prompt("Nhập giá mới cho món này:", currentPrice);
         if (newPrice && !isNaN(newPrice)) {
@@ -168,7 +165,6 @@
         }
     }
 
-    // Tính năng Báo hết/Mở bán
     async function toggleStatus(id, currentStatus) {
         await fetch(`${apiUrl}/${id}`, {
             method: 'PUT',
@@ -185,31 +181,25 @@
         }
     }
 
-   async function checkNewOrders() {
+    async function checkNewOrders() {
         try {
             const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
             const orders = await res.json();
             
             if (Array.isArray(orders)) {
-                const now = new Date(); // Lấy mốc thời gian hiện tại lúc tải đơn
-
+                const now = new Date(); 
                 const ordersHTML = orders.map(o => {
-                    // 1. Lấy và định dạng thời gian đặt đơn (VD: 14:30)
                     const orderTime = o.createdAt 
                         ? new Date(o.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) 
                         : '--:--';
 
-                    // 2. Logic tính toán thời gian trôi qua để ẩn đơn
-                    // Ưu tiên dùng updatedAt (thời gian lúc ấn hoàn thành), nếu không có thì dùng createdAt
                     const timeMark = new Date(o.updatedAt || o.createdAt);
-                    const diffInMinutes = (now - timeMark) / (1000 * 60); // Đổi khoảng cách thời gian ra số phút
+                    const diffInMinutes = (now - timeMark) / (1000 * 60); 
 
-                    // Nếu đơn đã có trạng thái 'completed' VÀ thời gian trôi qua lớn hơn 1 phút -> Bỏ qua không in ra
                     if (o.status === 'completed' && diffInMinutes > 1) {
                         return ''; 
                     }
 
-                    // Nếu đơn đang chờ, HOẶC mới hoàn thành dưới 1 phút -> In ra màn hình
                     return `
                         <div style="background: #fff3cd; border-left: 4px solid #f39c12; padding:15px; margin-bottom:10px; border-radius: 4px; ${o.status === 'completed' ? 'opacity: 0.6;' : ''}">
                             <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
@@ -223,7 +213,6 @@
                                     🕒 ${orderTime}
                                 </span>
                             </div>
-                            
                             <div style="font-size: 15px; margin-bottom: 8px;">
                                 <strong>Món:</strong> 
                                 ${o.items && Array.isArray(o.items) ? o.items.map(i => `
@@ -232,17 +221,23 @@
                                     </span>
                                 `).join(' ') : 'Trống'}
                             </div>
-
                             ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')" style="background: #27ae60; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Hoàn thành đơn</button>` : ''}
                         </div>
                     `;
-                }).join(''); // Nối các đoạn mã HTML lại với nhau
-
-                // In ra màn hình, nếu trống trơn (các đơn ẩn hết) thì báo chữ mờ
+                }).join(''); 
                 document.getElementById('order-list').innerHTML = ordersHTML || '<p style="color: #666; font-style: italic; text-align: center;">Chưa có đơn hàng mới nào hoặc đơn đã hoàn thành...</p>';
             }
-        } catch (error) { 
-            console.error("Lỗi tải đơn hàng:", error); 
+        } catch (error) { console.error("Lỗi tải đơn hàng:", error); }
+    }
+
+    async function completeOrder(id) { 
+        if(confirm("Xác nhận đã làm xong đơn này?")) {
+            try {
+                await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); 
+                checkNewOrders(); 
+            } catch(err) {
+                alert("Lỗi mạng khi hoàn thành đơn!");
+            }
         }
     }
 
