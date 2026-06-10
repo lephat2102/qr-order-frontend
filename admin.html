@@ -2,12 +2,14 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Quản Lý Nhà Hàng</title>
+    <title>Quản Lý Thực Đơn Full</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-        .item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #ddd; }
-        .item-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
+        .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .item-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 10px; }
+        .btn-group { display: flex; gap: 5px; }
+        button { cursor: pointer; padding: 5px 10px; }
     </style>
 </head>
 <body>
@@ -21,11 +23,19 @@
         <h2>🔔 Đơn Hàng Mới</h2>
         <div id="order-list"></div>
 
+        <hr>
         <h2>➕ Thêm Món Mới</h2>
         <input type="text" id="newName" placeholder="Tên món">
         <input type="number" id="newPrice" placeholder="Giá">
-        <input type="text" id="newImage" placeholder="Link ảnh món ăn">
-        <button onclick="addNewItem()">Thêm món</button>
+        <input type="text" id="newImage" placeholder="Link ảnh">
+        <button onclick="addNewItem()">Thêm</button>
+
+        <h2>⚙️ Quản lý QR</h2>
+        <input type="text" id="tableNumberInput" placeholder="Số bàn">
+        <button onclick="generateQR()">Tạo Mã QR</button>
+        <div id="qr-result" style="display:none; text-align:center; margin-top:10px;">
+            <img id="qr-image" style="max-width:200px;">
+        </div>
 
         <h2>📋 Menu hiện tại</h2>
         <ul id="admin-menu-list"></ul>
@@ -35,12 +45,8 @@
         const restaurantId = '6a2832bc08e5471d0399ab98';
         const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
 
-        function checkPass() {
-            if (document.getElementById('admin-pass').value === "123456") 
-                document.getElementById('login-overlay').style.display = 'none';
-        }
+        function checkPass() { if(document.getElementById('admin-pass').value === "123456") document.getElementById('login-overlay').style.display = 'none'; }
 
-        // Tải Menu kèm ảnh
         async function loadAdminMenu() {
             const res = await fetch(`${apiUrl}/${restaurantId}`);
             const result = await res.json();
@@ -48,55 +54,68 @@
             list.innerHTML = '';
             result.data.forEach(item => {
                 const li = document.createElement('li');
-                li.className = 'item-row';
+                li.className = 'menu-item';
                 li.innerHTML = `
-                    <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
-                    <div>${item.itemName} - ${item.price}đ</div>
-                    <button onclick="deleteItem('${item._id}')">Xóa</button>
+                    <div style="display:flex; align-items:center;">
+                        <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
+                        <span>${item.itemName} - ${item.price}đ ${!item.isAvailable ? '(Hết)' : ''}</span>
+                    </div>
+                    <div class="btn-group">
+                        <button onclick="toggleItem('${item._id}', ${!item.isAvailable})">Bật/Tắt</button>
+                        <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
+                    </div>
                 `;
                 list.appendChild(li);
             });
         }
 
-        // Thêm món với ảnh
         async function addNewItem() {
-            const name = document.getElementById('newName').value;
-            const price = document.getElementById('newPrice').value;
-            const img = document.getElementById('newImage').value;
             await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ restaurantId, itemName: name, price, imageUrl: img })
+                body: JSON.stringify({ 
+                    restaurantId, 
+                    itemName: document.getElementById('newName').value, 
+                    price: document.getElementById('newPrice').value,
+                    imageUrl: document.getElementById('newImage').value
+                })
             });
             loadAdminMenu();
         }
 
-        async function deleteItem(id) {
-            await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        async function deleteItem(id) { await fetch(`${apiUrl}/${id}`, { method: 'DELETE' }); loadAdminMenu(); }
+
+        async function toggleItem(id, status) {
+            await fetch(`${apiUrl}/${id}`, { 
+                method: 'PUT', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isAvailable: status }) 
+            });
             loadAdminMenu();
         }
 
         async function checkNewOrders() {
             const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
             const orders = await res.json();
-            const list = document.getElementById('order-list');
-            list.innerHTML = orders.map(order => `
-                <div style="border: 1px solid #ccc; padding:10px; margin-bottom:10px;">
-                    <strong>Bàn: ${order.tableNumber}</strong> - ${order.status === 'pending' ? '⏳' : '✅'}
-                    <div>Món: ${order.items.map(i => i.itemName).join(', ')}</div>
-                    ${order.status === 'pending' ? `<button onclick="completeOrder('${order._id}')">Hoàn thành</button>` : ''}
+            document.getElementById('order-list').innerHTML = orders.map(o => `
+                <div style="border:1px solid #ccc; padding:10px; margin-bottom:5px;">
+                    <strong>Bàn ${o.tableNumber}</strong> - ${o.status} 
+                    <div>${o.items.map(i => i.itemName).join(', ')}</div>
+                    ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')">Hoàn thành</button>` : ''}
                 </div>
             `).join('');
         }
 
-        async function completeOrder(id) {
-            await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' });
-            checkNewOrders();
+        async function completeOrder(id) { await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); checkNewOrders(); }
+
+        function generateQR() {
+            const table = document.getElementById('tableNumberInput').value;
+            const domain = window.location.origin;
+            document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(domain + '/index.html?shop=' + restaurantId + '&table=' + table)}`;
+            document.getElementById('qr-result').style.display = 'block';
         }
 
-        loadAdminMenu();
-        checkNewOrders();
-        setInterval(checkNewOrders, 5000);
+        loadAdminMenu(); checkNewOrders(); setInterval(checkNewOrders, 5000);
     </script>
 </body>
 </html>
