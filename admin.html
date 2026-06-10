@@ -10,16 +10,16 @@
         .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
         .item-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 15px; border: 1px solid #ccc; }
         .btn-group { display: flex; gap: 5px; }
-        button { cursor: pointer; padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; }
+        button { cursor: pointer; padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
         .add-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #e8f6f3; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .add-form input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .file-input-wrapper { background: white; padding: 5px; border-radius: 4px; border: 1px dashed #1abc9c; flex: 1; min-width: 200px; }
+        .add-form input[type="text"], .add-form input[type="number"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1; min-width: 150px; }
     </style>
 </head>
 <body>
     <div id="login-overlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center;">
         <h2>🔒 Khu Vực Quản Trị</h2>
-        <input type="password" id="admin-pass" placeholder="Nhập mật khẩu..." style="padding: 10px; width: 200px; margin-bottom: 10px;">
+        <input type="password" id="admin-pass" placeholder="Nhập mật khẩu..." style="padding: 10px; width: 200px; margin-bottom: 10px; text-align: center; border: 1px solid #ccc; border-radius: 5px;">
         <button onclick="checkPass()" style="background: #3498db; color: white;">Đăng nhập</button>
     </div>
 
@@ -29,21 +29,23 @@
 
         <h2>➕ Thêm Món Mới</h2>
         <div class="add-form">
-            <input type="text" id="newName" placeholder="Tên món" style="flex: 1;">
-            <input type="number" id="newPrice" placeholder="Giá tiền" style="width: 120px;">
-            <!-- Đây là nút chọn file ảnh -->
-            <div class="file-input-wrapper">
-                <small style="color: #666; display: block; margin-bottom: 3px;">Chọn ảnh món ăn:</small>
-                <input type="file" id="newImageFile" accept="image/*">
+            <input type="text" id="newName" placeholder="Tên món (VD: Bún Bò)">
+            <input type="number" id="newPrice" placeholder="Giá (VD: 35000)">
+            
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <input type="file" id="newImageFile" accept="image/*" style="display: none;" onchange="updateFileName(this)">
+                <button onclick="document.getElementById('newImageFile').click()" style="background: #3498db; color: white;">📸 Chọn Ảnh</button>
+                <small id="fileName" style="color: #666; max-width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Chưa chọn...</small>
             </div>
-            <button onclick="addNewItem()" style="background: #27ae60; color: white; height: 100%;">+ Thêm</button>
+
+            <button onclick="addNewItem()" style="background: #27ae60; color: white; margin-left: auto;">+ Lưu Món</button>
         </div>
 
         <h2>⚙️ Quản lý Bàn & QR</h2>
-        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
-            <input type="text" id="tableNumberInput" placeholder="Nhập số bàn (VD: 01)" style="padding: 8px;">
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="tableNumberInput" placeholder="Nhập số bàn (VD: 01)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             <button onclick="generateQR()" style="background: #8e44ad; color: white;">Tạo Mã QR</button>
-            <div id="qr-result" style="display:none; text-align:center; margin-top:15px;">
+            <div id="qr-result" style="display:none; width: 100%; text-align:center; margin-top:15px;">
                 <img id="qr-image" style="max-width:200px; border: 4px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
             </div>
         </div>
@@ -60,6 +62,18 @@
             if(document.getElementById('admin-pass').value === "123456") 
                 document.getElementById('login-overlay').style.display = 'none'; 
             else alert("Sai mật khẩu!");
+        }
+
+        // Cập nhật tên file ảnh khi chủ quán vừa chọn xong
+        function updateFileName(input) {
+            const fileNameDisplay = document.getElementById('fileName');
+            if (input.files && input.files.length > 0) {
+                fileNameDisplay.innerText = input.files[0].name;
+                fileNameDisplay.style.color = '#27ae60';
+            } else {
+                fileNameDisplay.innerText = 'Chưa chọn...';
+                fileNameDisplay.style.color = '#666';
+            }
         }
 
         function generateQR() {
@@ -79,12 +93,10 @@
                 list.innerHTML = '';
                 
                 const menuItems = result.data || result; 
-                
                 if (Array.isArray(menuItems)) {
                     menuItems.forEach(item => {
                         const li = document.createElement('li');
                         li.className = 'menu-item';
-                        // Hiển thị ảnh, nếu không có ảnh thì dùng ảnh mặc định
                         const imgSrc = item.imageUrl || 'https://via.placeholder.com/50?text=No+Img';
                         li.innerHTML = `
                             <div style="display:flex; align-items:center;">
@@ -98,9 +110,7 @@
                         list.appendChild(li);
                     });
                 }
-            } catch (error) {
-                console.error("Lỗi khi tải menu:", error);
-            }
+            } catch (error) { console.error("Lỗi tải menu:", error); }
         }
 
         async function addNewItem() {
@@ -112,16 +122,9 @@
 
             let imageUrl = '';
 
-            // Xử lý nếu người dùng có chọn file ảnh
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
-                
-                // Giới hạn dung lượng ảnh dưới 2MB để web chạy nhanh
-                if (file.size > 2 * 1024 * 1024) {
-                    return alert("File ảnh quá nặng! Vui lòng chọn ảnh dưới 2MB.");
-                }
-
-                // Chuyển đổi file ảnh thành chuỗi Base64
+                if (file.size > 2 * 1024 * 1024) return alert("File ảnh quá nặng! Vui lòng chọn ảnh dưới 2MB.");
                 imageUrl = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onloadend = () => resolve(reader.result);
@@ -129,23 +132,19 @@
                 });
             }
 
-            // Gửi dữ liệu lên Server
             try {
                 await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        restaurantId, 
-                        itemName: name, 
-                        price: Number(price),
-                        imageUrl: imageUrl 
-                    })
+                    body: JSON.stringify({ restaurantId, itemName: name, price: Number(price), imageUrl: imageUrl })
                 });
                 
-                // Xóa trống các ô nhập liệu sau khi thêm thành công
+                // Reset form sau khi lưu
                 document.getElementById('newName').value = '';
                 document.getElementById('newPrice').value = '';
                 document.getElementById('newImageFile').value = '';
+                document.getElementById('fileName').innerText = 'Chưa chọn...';
+                document.getElementById('fileName').style.color = '#666';
                 
                 loadAdminMenu();
             } catch (error) {
@@ -175,14 +174,21 @@
                                     ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Đã xong'}
                                 </span>
                             </div>
-                            <div style="font-size: 15px; margin-bottom: 8px;"><strong>Món:</strong> ${o.items && Array.isArray(o.items) ? o.items.map(i => i.itemName).join(', ') : 'Trống'}</div>
+                            
+                            <div style="font-size: 15px; margin-bottom: 8px;">
+                                <strong>Món:</strong> 
+                                ${o.items && Array.isArray(o.items) ? o.items.map(i => `
+                                    <span style="display: inline-block; background: #fdfae9; padding: 2px 5px; border: 1px solid #f39c12; border-radius: 4px; margin: 2px;">
+                                        ${i.itemName} <strong>x${i.quantity || 1}</strong>
+                                    </span>
+                                `).join(' ') : 'Trống'}
+                            </div>
+
                             ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')" style="background: #27ae60; color: white;">Hoàn thành đơn</button>` : ''}
                         </div>
                     `).join('');
                 }
-            } catch (error) {
-                console.error("Lỗi khi tải đơn hàng:", error);
-            }
+            } catch (error) { console.error("Lỗi tải đơn hàng:", error); }
         }
 
         async function completeOrder(id) { 
