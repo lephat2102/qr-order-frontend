@@ -233,12 +233,22 @@
     async function completeOrder(id) { 
         if(confirm("Xác nhận đã làm xong đơn này?")) {
             try {
-                await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); 
-                checkNewOrders(); 
+                const response = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { 
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                }); 
+                
+                if(response.ok) {
+                    checkNewOrders(); 
+                } else {
+                    alert("Backend báo lỗi không cập nhật được!");
+                }
             } catch(err) {
-                alert("Lỗi mạng khi hoàn thành đơn!");
+                alert("Lỗi kết nối mạng khi hoàn thành đơn!");
+                console.error(err);
             }
         }
+    }
     }
 
     loadAdminMenu(); 
