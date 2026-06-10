@@ -52,27 +52,33 @@
 
     // Tải menu và hiển thị nút Xóa/Bật-Tắt
     async function loadAdminMenu() {
-        const res = await fetch(`${apiUrl}/${restaurantId}`);
-        const result = await res.json();
-        const list = document.getElementById('admin-menu-list');
-        list.innerHTML = '';
-        if(result.success) {
-            result.data.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'menu-item';
-                li.innerHTML = `
-                    <div style="display:flex; align-items:center;">
-                        <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
-                        <span>${item.itemName} - ${item.price}đ</span>
-                    </div>
-                    <div class="btn-group">
-                        <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
-                    </div>
-                `;
-                list.appendChild(li);
-            });
-        }
+    const res = await fetch(`${apiUrl}/${restaurantId}`);
+    const result = await res.json();
+    const list = document.getElementById('admin-menu-list');
+    list.innerHTML = '';
+    
+    // Tự động kiểm tra: nếu result có data thì lấy data, không thì lấy thẳng result
+    const menuItems = result.data || result; 
+    
+    if (Array.isArray(menuItems)) {
+        menuItems.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'menu-item';
+            li.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
+                    <span>${item.itemName} - ${item.price}đ</span>
+                </div>
+                <div class="btn-group">
+                    <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    } else {
+        console.error("Dữ liệu menu không đúng định dạng:", result);
     }
+}
 
     async function addNewItem() {
         await fetch(apiUrl, {
