@@ -41,81 +41,79 @@
         <ul id="admin-menu-list"></ul>
     </div>
 
-    <script>
-        const restaurantId = '6a2832bc08e5471d0399ab98';
-        const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
+   <script>
+    const restaurantId = '6a2832bc08e5471d0399ab98';
+    const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
 
-        function checkPass() { if(document.getElementById('admin-pass').value === "123456") document.getElementById('login-overlay').style.display = 'none'; }
+    function checkPass() { 
+        if(document.getElementById('admin-pass').value === "123456") 
+            document.getElementById('login-overlay').style.display = 'none'; 
+    }
 
-        async function loadAdminMenu() {
-            const res = await fetch(`${apiUrl}/${restaurantId}`);
-            const result = await res.json();
-            const list = document.getElementById('admin-menu-list');
-            list.innerHTML = '';
+    // Tải menu và hiển thị nút Xóa/Bật-Tắt
+    async function loadAdminMenu() {
+        const res = await fetch(`${apiUrl}/${restaurantId}`);
+        const result = await res.json();
+        const list = document.getElementById('admin-menu-list');
+        list.innerHTML = '';
+        if(result.success) {
             result.data.forEach(item => {
                 const li = document.createElement('li');
                 li.className = 'menu-item';
                 li.innerHTML = `
                     <div style="display:flex; align-items:center;">
                         <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
-                        <span>${item.itemName} - ${item.price}đ ${!item.isAvailable ? '(Hết)' : ''}</span>
+                        <span>${item.itemName} - ${item.price}đ</span>
                     </div>
                     <div class="btn-group">
-                        <button onclick="toggleItem('${item._id}', ${!item.isAvailable})">Bật/Tắt</button>
                         <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
                     </div>
                 `;
                 list.appendChild(li);
             });
         }
+    }
 
-        async function addNewItem() {
-            await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    restaurantId, 
-                    itemName: document.getElementById('newName').value, 
-                    price: document.getElementById('newPrice').value,
-                    imageUrl: document.getElementById('newImage').value
-                })
-            });
-            loadAdminMenu();
-        }
+    async function addNewItem() {
+        await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                restaurantId, 
+                itemName: document.getElementById('newName').value, 
+                price: document.getElementById('newPrice').value,
+                imageUrl: document.getElementById('newImage').value
+            })
+        });
+        loadAdminMenu();
+    }
 
-        async function deleteItem(id) { await fetch(`${apiUrl}/${id}`, { method: 'DELETE' }); loadAdminMenu(); }
+    async function deleteItem(id) { 
+        await fetch(`${apiUrl}/${id}`, { method: 'DELETE' }); 
+        loadAdminMenu(); 
+    }
 
-        async function toggleItem(id, status) {
-            await fetch(`${apiUrl}/${id}`, { 
-                method: 'PUT', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isAvailable: status }) 
-            });
-            loadAdminMenu();
-        }
+    async function checkNewOrders() {
+        const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
+        const orders = await res.json();
+        document.getElementById('order-list').innerHTML = orders.map(o => `
+            <div style="border:1px solid #ccc; padding:10px; margin-bottom:5px;">
+                <strong>Bàn ${o.tableNumber}</strong> - ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Xong'} 
+                <div>${o.items.map(i => i.itemName).join(', ')}</div>
+                ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')">Hoàn thành</button>` : ''}
+            </div>
+        `).join('');
+    }
 
-        async function checkNewOrders() {
-            const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
-            const orders = await res.json();
-            document.getElementById('order-list').innerHTML = orders.map(o => `
-                <div style="border:1px solid #ccc; padding:10px; margin-bottom:5px;">
-                    <strong>Bàn ${o.tableNumber}</strong> - ${o.status} 
-                    <div>${o.items.map(i => i.itemName).join(', ')}</div>
-                    ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')">Hoàn thành</button>` : ''}
-                </div>
-            `).join('');
-        }
+    async function completeOrder(id) { 
+        await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); 
+        checkNewOrders(); 
+    }
 
-        async function completeOrder(id) { await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); checkNewOrders(); }
-
-        function generateQR() {
-            const table = document.getElementById('tableNumberInput').value;
-            const domain = window.location.origin;
-            document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(domain + '/index.html?shop=' + restaurantId + '&table=' + table)}`;
-            document.getElementById('qr-result').style.display = 'block';
-        }
-
-        loadAdminMenu(); checkNewOrders(); setInterval(checkNewOrders, 5000);
-    </script>
+    // Chạy khởi tạo
+    loadAdminMenu(); 
+    checkNewOrders(); 
+    setInterval(checkNewOrders, 5000);
+</script>
 </body>
 </html>
