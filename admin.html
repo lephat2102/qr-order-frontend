@@ -55,150 +55,173 @@
     </div>
 
     <script>
-        const restaurantId = '6a2832bc08e5471d0399ab98';
-        const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
+    const restaurantId = '6a2832bc08e5471d0399ab98';
+    const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
 
-        function checkPass() { 
-            if(document.getElementById('admin-pass').value === "123456") 
-                document.getElementById('login-overlay').style.display = 'none'; 
-            else alert("Sai mật khẩu!");
+    function checkPass() { 
+        if(document.getElementById('admin-pass').value === "123456") 
+            document.getElementById('login-overlay').style.display = 'none'; 
+        else alert("Sai mật khẩu!");
+    }
+
+    function updateFileName(input) {
+        const fileNameDisplay = document.getElementById('fileName');
+        if (input.files && input.files.length > 0) {
+            fileNameDisplay.innerText = input.files[0].name;
+            fileNameDisplay.style.color = '#27ae60';
+        } else {
+            fileNameDisplay.innerText = 'Chưa chọn...';
+            fileNameDisplay.style.color = '#666';
         }
+    }
 
-        // Cập nhật tên file ảnh khi chủ quán vừa chọn xong
-        function updateFileName(input) {
-            const fileNameDisplay = document.getElementById('fileName');
-            if (input.files && input.files.length > 0) {
-                fileNameDisplay.innerText = input.files[0].name;
-                fileNameDisplay.style.color = '#27ae60';
-            } else {
-                fileNameDisplay.innerText = 'Chưa chọn...';
-                fileNameDisplay.style.color = '#666';
-            }
-        }
+    function generateQR() {
+        const table = document.getElementById('tableNumberInput').value;
+        if (!table) return alert("Vui lòng nhập số bàn!");
+        const domain = window.location.origin;
+        const qrUrl = `${domain}/index.html?shop=${restaurantId}&table=${table}`;
+        document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
+        document.getElementById('qr-result').style.display = 'block';
+    }
 
-        function generateQR() {
-            const table = document.getElementById('tableNumberInput').value;
-            if (!table) return alert("Vui lòng nhập số bàn!");
-            const domain = window.location.origin;
-            const qrUrl = `${domain}/index.html?shop=${restaurantId}&table=${table}`;
-            document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
-            document.getElementById('qr-result').style.display = 'block';
-        }
-
-        async function loadAdminMenu() {
-            try {
-                const res = await fetch(`${apiUrl}/${restaurantId}`);
-                const result = await res.json();
-                const list = document.getElementById('admin-menu-list');
-                list.innerHTML = '';
-                
-                const menuItems = result.data || result; 
-                if (Array.isArray(menuItems)) {
-                    menuItems.forEach(item => {
-                        const li = document.createElement('li');
-                        li.className = 'menu-item';
-                        const imgSrc = item.imageUrl || 'https://via.placeholder.com/50?text=No+Img';
-                        li.innerHTML = `
-                            <div style="display:flex; align-items:center;">
-                                <img src="${imgSrc}" class="item-img">
-                                <span style="font-size: 16px; font-weight: bold;">${item.itemName} - <span style="color: #e74c3c;">${item.price}đ</span></span>
-                            </div>
-                            <div class="btn-group">
-                                <button onclick="deleteItem('${item._id}')" style="background:#c0392b; color:white;">Xóa</button>
-                            </div>
-                        `;
-                        list.appendChild(li);
-                    });
-                }
-            } catch (error) { console.error("Lỗi tải menu:", error); }
-        }
-
-        async function addNewItem() {
-            const name = document.getElementById('newName').value;
-            const price = document.getElementById('newPrice').value;
-            const fileInput = document.getElementById('newImageFile');
-
-            if (!name || !price) return alert("Vui lòng nhập đủ tên và giá tiền!");
-
-            let imageUrl = '';
-
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                if (file.size > 2 * 1024 * 1024) return alert("File ảnh quá nặng! Vui lòng chọn ảnh dưới 2MB.");
-                imageUrl = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(file);
-                });
-            }
-
-            try {
-                await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ restaurantId, itemName: name, price: Number(price), imageUrl: imageUrl })
-                });
-                
-                // Reset form sau khi lưu
-                document.getElementById('newName').value = '';
-                document.getElementById('newPrice').value = '';
-                document.getElementById('newImageFile').value = '';
-                document.getElementById('fileName').innerText = 'Chưa chọn...';
-                document.getElementById('fileName').style.color = '#666';
-                
-                loadAdminMenu();
-            } catch (error) {
-                alert("Lỗi khi thêm món!");
-                console.error(error);
-            }
-        }
-
-        async function deleteItem(id) { 
-            if(confirm("Bạn có chắc muốn xóa món này?")) {
-                await fetch(`${apiUrl}/${id}`, { method: 'DELETE' }); 
-                loadAdminMenu(); 
-            }
-        }
-
-        async function checkNewOrders() {
-            try {
-                const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
-                const orders = await res.json();
-                
-                if (Array.isArray(orders)) {
-                    document.getElementById('order-list').innerHTML = orders.map(o => `
-                        <div style="background: #fff3cd; border-left: 4px solid #f39c12; padding:15px; margin-bottom:10px; border-radius: 4px;">
-                            <div style="margin-bottom: 8px;">
-                                <strong style="font-size: 16px;">Bàn ${o.tableNumber}</strong> | 
-                                <span style="color: ${o.status === 'pending' ? 'red' : 'green'}">
-                                    ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Đã xong'}
-                                </span>
-                            </div>
-                            
-                            <div style="font-size: 15px; margin-bottom: 8px;">
-                                <strong>Món:</strong> 
-                                ${o.items && Array.isArray(o.items) ? o.items.map(i => `
-                                    <span style="display: inline-block; background: #fdfae9; padding: 2px 5px; border: 1px solid #f39c12; border-radius: 4px; margin: 2px;">
-                                        ${i.itemName} <strong>x${i.quantity || 1}</strong>
-                                    </span>
-                                `).join(' ') : 'Trống'}
-                            </div>
-
-                            ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')" style="background: #27ae60; color: white;">Hoàn thành đơn</button>` : ''}
+    async function loadAdminMenu() {
+        try {
+            const res = await fetch(`${apiUrl}/${restaurantId}`);
+            const result = await res.json();
+            const list = document.getElementById('admin-menu-list');
+            list.innerHTML = '';
+            
+            const menuItems = result.data || result; 
+            if (Array.isArray(menuItems)) {
+                menuItems.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'menu-item';
+                    const imgSrc = item.imageUrl || 'https://via.placeholder.com/50?text=No+Img';
+                    
+                    // Kiểm tra xem món có đang bán không (mặc định là có nếu isAvailable không false)
+                    const isAvailable = item.isAvailable !== false; 
+                    
+                    li.innerHTML = `
+                        <div style="display:flex; align-items:center; opacity: ${isAvailable ? '1' : '0.5'};">
+                            <img src="${imgSrc}" class="item-img">
+                            <span style="font-size: 16px; font-weight: bold; ${isAvailable ? '' : 'text-decoration: line-through;'}">
+                                ${item.itemName} - <span style="color: #e74c3c;">${item.price}đ</span>
+                                ${isAvailable ? '' : '<span style="color:red; font-size:12px; margin-left:5px;">(Hết)</span>'}
+                            </span>
                         </div>
-                    `).join('');
-                }
-            } catch (error) { console.error("Lỗi tải đơn hàng:", error); }
+                        <div class="btn-group">
+                            <button onclick="editPrice('${item._id}', ${item.price})" style="background:#f39c12; color:white;">Sửa Giá</button>
+                            <button onclick="toggleStatus('${item._id}', ${isAvailable})" style="background:#34495e; color:white;">${isAvailable ? 'Báo Hết' : 'Mở Bán'}</button>
+                            <button onclick="deleteItem('${item._id}')" style="background:#c0392b; color:white;">Xóa</button>
+                        </div>
+                    `;
+                    list.appendChild(li);
+                });
+            }
+        } catch (error) { console.error("Lỗi tải menu:", error); }
+    }
+
+    async function addNewItem() {
+        const name = document.getElementById('newName').value;
+        const price = document.getElementById('newPrice').value;
+        const fileInput = document.getElementById('newImageFile');
+
+        if (!name || !price) return alert("Vui lòng nhập đủ tên và giá tiền!");
+        let imageUrl = '';
+
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            if (file.size > 2 * 1024 * 1024) return alert("File ảnh quá nặng! Vui lòng chọn ảnh dưới 2MB.");
+            imageUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
         }
 
-        async function completeOrder(id) { 
-            await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); 
-            checkNewOrders(); 
-        }
+        try {
+            await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ restaurantId, itemName: name, price: Number(price), imageUrl: imageUrl, isAvailable: true })
+            });
+            
+            document.getElementById('newName').value = '';
+            document.getElementById('newPrice').value = '';
+            document.getElementById('newImageFile').value = '';
+            document.getElementById('fileName').innerText = 'Chưa chọn...';
+            document.getElementById('fileName').style.color = '#666';
+            loadAdminMenu();
+        } catch (error) { alert("Lỗi khi thêm món!"); }
+    }
 
-        loadAdminMenu(); 
+    // Tính năng Sửa giá
+    async function editPrice(id, currentPrice) {
+        const newPrice = prompt("Nhập giá mới cho món này:", currentPrice);
+        if (newPrice && !isNaN(newPrice)) {
+            await fetch(`${apiUrl}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ price: Number(newPrice) })
+            });
+            loadAdminMenu();
+        }
+    }
+
+    // Tính năng Báo hết/Mở bán
+    async function toggleStatus(id, currentStatus) {
+        await fetch(`${apiUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isAvailable: !currentStatus })
+        });
+        loadAdminMenu();
+    }
+
+    async function deleteItem(id) { 
+        if(confirm("Bạn có chắc muốn xóa món này?")) {
+            await fetch(`${apiUrl}/${id}`, { method: 'DELETE' }); 
+            loadAdminMenu(); 
+        }
+    }
+
+    async function checkNewOrders() {
+        try {
+            const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
+            const orders = await res.json();
+            
+            if (Array.isArray(orders)) {
+                document.getElementById('order-list').innerHTML = orders.map(o => `
+                    <div style="background: #fff3cd; border-left: 4px solid #f39c12; padding:15px; margin-bottom:10px; border-radius: 4px;">
+                        <div style="margin-bottom: 8px;">
+                            <strong style="font-size: 16px;">Bàn ${o.tableNumber}</strong> | 
+                            <span style="color: ${o.status === 'pending' ? 'red' : 'green'}">
+                                ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Đã xong'}
+                            </span>
+                        </div>
+                        <div style="font-size: 15px; margin-bottom: 8px;">
+                            <strong>Món:</strong> 
+                            ${o.items && Array.isArray(o.items) ? o.items.map(i => `
+                                <span style="display: inline-block; background: #fdfae9; padding: 2px 5px; border: 1px solid #f39c12; border-radius: 4px; margin: 2px;">
+                                    ${i.itemName} <strong>x${i.quantity || 1}</strong>
+                                </span>
+                            `).join(' ') : 'Trống'}
+                        </div>
+                        ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')" style="background: #27ae60; color: white;">Hoàn thành đơn</button>` : ''}
+                    </div>
+                `).join('');
+            }
+        } catch (error) {}
+    }
+
+    async function completeOrder(id) { 
+        await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); 
         checkNewOrders(); 
-        setInterval(checkNewOrders, 5000);
-    </script>
+    }
+
+    loadAdminMenu(); 
+    checkNewOrders(); 
+    setInterval(checkNewOrders, 5000);
+</script>
 </body>
 </html>
