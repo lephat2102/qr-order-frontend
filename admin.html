@@ -56,7 +56,15 @@
     const result = await res.json();
     const list = document.getElementById('admin-menu-list');
     list.innerHTML = '';
-    
+    function generateQR() {
+        const table = document.getElementById('tableNumberInput').value;
+        if (!table) return alert("Vui lòng nhập số bàn!");
+        const domain = window.location.origin;
+        // Tạo link trỏ về trang index.html kèm tham số bàn và nhà hàng
+        const qrUrl = `${domain}/index.html?shop=${restaurantId}&table=${table}`;
+        document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
+        document.getElementById('qr-result').style.display = 'block';
+    }
     // Tự động kiểm tra: nếu result có data thì lấy data, không thì lấy thẳng result
     const menuItems = result.data || result; 
     
@@ -120,6 +128,7 @@
     loadAdminMenu(); 
     checkNewOrders(); 
     setInterval(checkNewOrders, 5000);
+    
 </script>
 </body>
 </html>
