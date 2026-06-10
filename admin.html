@@ -5,137 +5,194 @@
     <title>Quản Lý Thực Đơn Full</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; color: #2c3e50; }
         .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
-        .item-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 10px; }
+        .item-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 15px; border: 1px solid #ccc; }
         .btn-group { display: flex; gap: 5px; }
-        button { cursor: pointer; padding: 5px 10px; }
+        button { cursor: pointer; padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; }
+        .add-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #e8f6f3; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .add-form input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .file-input-wrapper { background: white; padding: 5px; border-radius: 4px; border: 1px dashed #1abc9c; flex: 1; min-width: 200px; }
     </style>
 </head>
 <body>
     <div id="login-overlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h2>🔒 Quản trị</h2>
-        <input type="password" id="admin-pass" placeholder="Mật khẩu...">
-        <button onclick="checkPass()">Đăng nhập</button>
+        <h2>🔒 Khu Vực Quản Trị</h2>
+        <input type="password" id="admin-pass" placeholder="Nhập mật khẩu..." style="padding: 10px; width: 200px; margin-bottom: 10px;">
+        <button onclick="checkPass()" style="background: #3498db; color: white;">Đăng nhập</button>
     </div>
 
     <div class="container">
         <h2>🔔 Đơn Hàng Mới</h2>
         <div id="order-list"></div>
 
-        <hr>
         <h2>➕ Thêm Món Mới</h2>
-        <input type="text" id="newName" placeholder="Tên món">
-        <input type="number" id="newPrice" placeholder="Giá">
-        <input type="text" id="newImage" placeholder="Link ảnh">
-        <button onclick="addNewItem()">Thêm</button>
-
-        <h2>⚙️ Quản lý QR</h2>
-        <input type="text" id="tableNumberInput" placeholder="Số bàn">
-        <button onclick="generateQR()">Tạo Mã QR</button>
-        <div id="qr-result" style="display:none; text-align:center; margin-top:10px;">
-            <img id="qr-image" style="max-width:200px;">
+        <div class="add-form">
+            <input type="text" id="newName" placeholder="Tên món" style="flex: 1;">
+            <input type="number" id="newPrice" placeholder="Giá tiền" style="width: 120px;">
+            <!-- Đây là nút chọn file ảnh -->
+            <div class="file-input-wrapper">
+                <small style="color: #666; display: block; margin-bottom: 3px;">Chọn ảnh món ăn:</small>
+                <input type="file" id="newImageFile" accept="image/*">
+            </div>
+            <button onclick="addNewItem()" style="background: #27ae60; color: white; height: 100%;">+ Thêm</button>
         </div>
 
-        <h2>📋 Menu hiện tại</h2>
-        <ul id="admin-menu-list"></ul>
+        <h2>⚙️ Quản lý Bàn & QR</h2>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+            <input type="text" id="tableNumberInput" placeholder="Nhập số bàn (VD: 01)" style="padding: 8px;">
+            <button onclick="generateQR()" style="background: #8e44ad; color: white;">Tạo Mã QR</button>
+            <div id="qr-result" style="display:none; text-align:center; margin-top:15px;">
+                <img id="qr-image" style="max-width:200px; border: 4px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+            </div>
+        </div>
+
+        <h2>📋 Danh sách thực đơn</h2>
+        <ul id="admin-menu-list" style="list-style: none; padding: 0;"></ul>
     </div>
 
-  <script>
-    const restaurantId = '6a2832bc08e5471d0399ab98';
-    const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
+    <script>
+        const restaurantId = '6a2832bc08e5471d0399ab98';
+        const apiUrl = 'https://qr-order-backend-1.onrender.com/api/menu';
 
-    function checkPass() { 
-        if(document.getElementById('admin-pass').value === "123456") 
-            document.getElementById('login-overlay').style.display = 'none'; 
-    }
+        function checkPass() { 
+            if(document.getElementById('admin-pass').value === "123456") 
+                document.getElementById('login-overlay').style.display = 'none'; 
+            else alert("Sai mật khẩu!");
+        }
 
-    function generateQR() {
-        const table = document.getElementById('tableNumberInput').value;
-        if (!table) return alert("Vui lòng nhập số bàn!");
-        const domain = window.location.origin;
-        const qrUrl = `${domain}/index.html?shop=${restaurantId}&table=${table}`;
-        document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
-        document.getElementById('qr-result').style.display = 'block';
-    }
+        function generateQR() {
+            const table = document.getElementById('tableNumberInput').value;
+            if (!table) return alert("Vui lòng nhập số bàn!");
+            const domain = window.location.origin;
+            const qrUrl = `${domain}/index.html?shop=${restaurantId}&table=${table}`;
+            document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
+            document.getElementById('qr-result').style.display = 'block';
+        }
 
-    async function loadAdminMenu() {
-        try {
-            const res = await fetch(`${apiUrl}/${restaurantId}`);
-            const result = await res.json();
-            const list = document.getElementById('admin-menu-list');
-            list.innerHTML = '';
-            
-            const menuItems = result.data || result; 
-            
-            if (Array.isArray(menuItems)) {
-                menuItems.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = 'menu-item';
-                    li.innerHTML = `
-                        <div style="display:flex; align-items:center;">
-                            <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
-                            <span>${item.itemName} - ${item.price}đ</span>
-                        </div>
-                        <div class="btn-group">
-                            <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
-                        </div>
-                    `;
-                    list.appendChild(li);
+        async function loadAdminMenu() {
+            try {
+                const res = await fetch(`${apiUrl}/${restaurantId}`);
+                const result = await res.json();
+                const list = document.getElementById('admin-menu-list');
+                list.innerHTML = '';
+                
+                const menuItems = result.data || result; 
+                
+                if (Array.isArray(menuItems)) {
+                    menuItems.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'menu-item';
+                        // Hiển thị ảnh, nếu không có ảnh thì dùng ảnh mặc định
+                        const imgSrc = item.imageUrl || 'https://via.placeholder.com/50?text=No+Img';
+                        li.innerHTML = `
+                            <div style="display:flex; align-items:center;">
+                                <img src="${imgSrc}" class="item-img">
+                                <span style="font-size: 16px; font-weight: bold;">${item.itemName} - <span style="color: #e74c3c;">${item.price}đ</span></span>
+                            </div>
+                            <div class="btn-group">
+                                <button onclick="deleteItem('${item._id}')" style="background:#c0392b; color:white;">Xóa</button>
+                            </div>
+                        `;
+                        list.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải menu:", error);
+            }
+        }
+
+        async function addNewItem() {
+            const name = document.getElementById('newName').value;
+            const price = document.getElementById('newPrice').value;
+            const fileInput = document.getElementById('newImageFile');
+
+            if (!name || !price) return alert("Vui lòng nhập đủ tên và giá tiền!");
+
+            let imageUrl = '';
+
+            // Xử lý nếu người dùng có chọn file ảnh
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                
+                // Giới hạn dung lượng ảnh dưới 2MB để web chạy nhanh
+                if (file.size > 2 * 1024 * 1024) {
+                    return alert("File ảnh quá nặng! Vui lòng chọn ảnh dưới 2MB.");
+                }
+
+                // Chuyển đổi file ảnh thành chuỗi Base64
+                imageUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(file);
                 });
             }
-        } catch (error) {
-            console.error("Chưa có món ăn hoặc lỗi kết nối:", error);
-        }
-    }
 
-    async function addNewItem() {
-        await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                restaurantId, 
-                itemName: document.getElementById('newName').value, 
-                price: document.getElementById('newPrice').value,
-                imageUrl: document.getElementById('newImage').value
-            })
-        });
-        loadAdminMenu();
-    }
-
-    async function deleteItem(id) { 
-        await fetch(`${apiUrl}/${id}`, { method: 'DELETE' }); 
-        loadAdminMenu(); 
-    }
-
-    async function checkNewOrders() {
-        try {
-            const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
-            const orders = await res.json();
-            
-            // Đảm bảo orders là một danh sách trước khi hiển thị
-            if (Array.isArray(orders)) {
-                document.getElementById('order-list').innerHTML = orders.map(o => `
-                    <div style="border:1px solid #ccc; padding:10px; margin-bottom:5px;">
-                        <strong>Bàn ${o.tableNumber}</strong> - ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Xong'} 
-                        <div>${o.items && Array.isArray(o.items) ? o.items.map(i => i.itemName).join(', ') : 'Không có chi tiết món'}</div>
-                        ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')">Hoàn thành</button>` : ''}
-                    </div>
-                `).join('');
+            // Gửi dữ liệu lên Server
+            try {
+                await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        restaurantId, 
+                        itemName: name, 
+                        price: Number(price),
+                        imageUrl: imageUrl 
+                    })
+                });
+                
+                // Xóa trống các ô nhập liệu sau khi thêm thành công
+                document.getElementById('newName').value = '';
+                document.getElementById('newPrice').value = '';
+                document.getElementById('newImageFile').value = '';
+                
+                loadAdminMenu();
+            } catch (error) {
+                alert("Lỗi khi thêm món!");
+                console.error(error);
             }
-        } catch (error) {
-            console.error("Chưa có đơn hàng hoặc lỗi kết nối:", error);
         }
-    }
 
-    async function completeOrder(id) { 
-        await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); 
+        async function deleteItem(id) { 
+            if(confirm("Bạn có chắc muốn xóa món này?")) {
+                await fetch(`${apiUrl}/${id}`, { method: 'DELETE' }); 
+                loadAdminMenu(); 
+            }
+        }
+
+        async function checkNewOrders() {
+            try {
+                const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
+                const orders = await res.json();
+                
+                if (Array.isArray(orders)) {
+                    document.getElementById('order-list').innerHTML = orders.map(o => `
+                        <div style="background: #fff3cd; border-left: 4px solid #f39c12; padding:15px; margin-bottom:10px; border-radius: 4px;">
+                            <div style="margin-bottom: 8px;">
+                                <strong style="font-size: 16px;">Bàn ${o.tableNumber}</strong> | 
+                                <span style="color: ${o.status === 'pending' ? 'red' : 'green'}">
+                                    ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Đã xong'}
+                                </span>
+                            </div>
+                            <div style="font-size: 15px; margin-bottom: 8px;"><strong>Món:</strong> ${o.items && Array.isArray(o.items) ? o.items.map(i => i.itemName).join(', ') : 'Trống'}</div>
+                            ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')" style="background: #27ae60; color: white;">Hoàn thành đơn</button>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải đơn hàng:", error);
+            }
+        }
+
+        async function completeOrder(id) { 
+            await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${id}`, { method: 'PUT' }); 
+            checkNewOrders(); 
+        }
+
+        loadAdminMenu(); 
         checkNewOrders(); 
-    }
-
-    loadAdminMenu(); 
-    checkNewOrders(); 
-    setInterval(checkNewOrders, 5000);
-</script>
+        setInterval(checkNewOrders, 5000);
+    </script>
 </body>
 </html>
