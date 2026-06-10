@@ -209,7 +209,15 @@
     `;
     orderList.appendChild(li);
 });
-
+async function completeOrder(orderId) {
+    if (confirm("Xác nhận món đã làm xong?")) {
+        await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${orderId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        loadAdminMenu(); // Tải lại danh sách đơn
+    }
+}
     // Chạy lệnh kiểm tra mỗi 5 giây
     setInterval(checkNewOrders, 5000);
 </script>
