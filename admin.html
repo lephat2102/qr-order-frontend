@@ -50,7 +50,6 @@
             document.getElementById('login-overlay').style.display = 'none'; 
     }
 
-    // --- HÀM TẠO QR ĐÃ ĐƯỢC ĐƯA RA NGOÀI ---
     function generateQR() {
         const table = document.getElementById('tableNumberInput').value;
         if (!table) return alert("Vui lòng nhập số bàn!");
@@ -61,28 +60,32 @@
     }
 
     async function loadAdminMenu() {
-        const res = await fetch(`${apiUrl}/${restaurantId}`);
-        const result = await res.json();
-        const list = document.getElementById('admin-menu-list');
-        list.innerHTML = '';
-        
-        const menuItems = result.data || result; 
-        
-        if (Array.isArray(menuItems)) {
-            menuItems.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'menu-item';
-                li.innerHTML = `
-                    <div style="display:flex; align-items:center;">
-                        <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
-                        <span>${item.itemName} - ${item.price}đ</span>
-                    </div>
-                    <div class="btn-group">
-                        <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
-                    </div>
-                `;
-                list.appendChild(li);
-            });
+        try {
+            const res = await fetch(`${apiUrl}/${restaurantId}`);
+            const result = await res.json();
+            const list = document.getElementById('admin-menu-list');
+            list.innerHTML = '';
+            
+            const menuItems = result.data || result; 
+            
+            if (Array.isArray(menuItems)) {
+                menuItems.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'menu-item';
+                    li.innerHTML = `
+                        <div style="display:flex; align-items:center;">
+                            <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" class="item-img">
+                            <span>${item.itemName} - ${item.price}đ</span>
+                        </div>
+                        <div class="btn-group">
+                            <button onclick="deleteItem('${item._id}')" style="background:#e74c3c; color:white;">Xóa</button>
+                        </div>
+                    `;
+                    list.appendChild(li);
+                });
+            }
+        } catch (error) {
+            console.error("Chưa có món ăn hoặc lỗi kết nối:", error);
         }
     }
 
@@ -106,15 +109,23 @@
     }
 
     async function checkNewOrders() {
-        const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
-        const orders = await res.json();
-        document.getElementById('order-list').innerHTML = orders.map(o => `
-            <div style="border:1px solid #ccc; padding:10px; margin-bottom:5px;">
-                <strong>Bàn ${o.tableNumber}</strong> - ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Xong'} 
-                <div>${o.items.map(i => i.itemName).join(', ')}</div>
-                ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')">Hoàn thành</button>` : ''}
-            </div>
-        `).join('');
+        try {
+            const res = await fetch(`https://qr-order-backend-1.onrender.com/api/orders/${restaurantId}`);
+            const orders = await res.json();
+            
+            // Đảm bảo orders là một danh sách trước khi hiển thị
+            if (Array.isArray(orders)) {
+                document.getElementById('order-list').innerHTML = orders.map(o => `
+                    <div style="border:1px solid #ccc; padding:10px; margin-bottom:5px;">
+                        <strong>Bàn ${o.tableNumber}</strong> - ${o.status === 'pending' ? '⏳ Đang làm' : '✅ Xong'} 
+                        <div>${o.items && Array.isArray(o.items) ? o.items.map(i => i.itemName).join(', ') : 'Không có chi tiết món'}</div>
+                        ${o.status === 'pending' ? `<button onclick="completeOrder('${o._id}')">Hoàn thành</button>` : ''}
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error("Chưa có đơn hàng hoặc lỗi kết nối:", error);
+        }
     }
 
     async function completeOrder(id) { 
